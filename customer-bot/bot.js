@@ -3,23 +3,20 @@ const http = require("http");
 const { Telegraf, Markup, session } = require("telegraf");
 const axios = require("axios");
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const API_URL = process.env.API_URL || "http://localhost:4000/api";
-const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:4000";
+function startCustomerBot(customToken, customApiUrl) {
+  const BOT_TOKEN = customToken || process.env.CUSTOMER_BOT_TOKEN || process.env.BOT_TOKEN;
+  const API_URL = customApiUrl || process.env.API_URL || "http://localhost:4000/api";
 
-if (!BOT_TOKEN) {
-  console.error("❌ .env faylida BOT_TOKEN ko'rsatilmagan");
-  process.exit(1);
-}
+  if (!BOT_TOKEN) {
+    console.error("❌ Mijoz Boti: BOT_TOKEN ko'rsatilmagan");
+    return;
+  }
 
-const bot = new Telegraf(BOT_TOKEN);
+  const bot = new Telegraf(BOT_TOKEN);
+  const httpAgent = new http.Agent({ keepAlive: true });
+  const api = axios.create({ baseURL: API_URL, httpAgent });
 
-// HTTP Keep-Alive — ulanishni har safar qayta ochmasdan 10x tezroq ishlatish
-const httpAgent = new http.Agent({ keepAlive: true });
-const api = axios.create({ baseURL: API_URL, httpAgent });
-
-// Disk (sessions.json) ga yozmasdan, to'g'ridan-to'g'ri RAM (Operativ xotira) da chaqqon ishlash
-bot.use(session({ defaultSession: () => ({}) }));
+  bot.use(session({ defaultSession: () => ({}) }));
 
 // ===================== I18N =====================
 const i18n = {
@@ -655,7 +652,14 @@ bot.catch((err, ctx) => {
   ctx.reply("❌ Kutilmagan xatolik yuz berdi.").catch(() => {});
 });
 
-bot.launch().then(() => console.log("✅ Yangi Mijoz Boti ishga tushdi"));
+  bot.launch().then(() => console.log("✅ Yangi Mijoz Boti ishga tushdi"));
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+  process.once("SIGINT", () => bot.stop("SIGINT"));
+  process.once("SIGTERM", () => bot.stop("SIGTERM"));
+}
+
+if (require.main === module) {
+  startCustomerBot();
+}
+
+module.exports = startCustomerBot;

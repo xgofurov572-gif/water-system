@@ -1,35 +1,16 @@
-const { spawn } = require('child_process');
-const path = require('path');
+require('dotenv').config();
 
-// Render.com bepul rejasida hamma narsani 1 ta xizmat ichida ishga tushirish uchun
-function startProcess(name, dir, script, extraEnv = {}) {
-  console.log(`[START] ${name} ishga tushmoqda...`);
-  const p = spawn('node', [script], { 
-    cwd: path.join(__dirname, dir), 
-    stdio: 'inherit',
-    env: { ...process.env, ...extraEnv } 
-  });
-  
-  p.on('close', (code) => {
-    console.log(`[EXIT] ${name} to'xtadi (kod: ${code})`);
-  });
-}
-
-// Barcha xizmatlarni bitta joyda ishga tushiramiz
-// Botlar backend bilan bir xil serverda bo'lgani uchun to'g'ridan-to'g'ri localhost orqali ulanadi!
-startProcess('Backend', 'backend', 'src/index.js');
+console.log('[START] Backend ishga tushmoqda...');
+require('./backend/src/index.js');
 
 const port = process.env.PORT || 4000;
+const apiUrl = `http://localhost:${port}/api`;
+
+const startCustomerBot = require('./customer-bot/bot.js');
+const startCourierBot = require('./courier-bot/bot.js');
 
 setTimeout(() => {
-  // Render dagi bitta xizmatda ikkita bot ishlayotgani uchun tokenlarni to'g'ri taqsimlaymiz
-  startProcess('Mijoz Boti', 'customer-bot', 'bot.js', { 
-    API_URL: `http://localhost:${port}/api`,
-    BOT_TOKEN: process.env.CUSTOMER_BOT_TOKEN 
-  });
-  
-  startProcess('Kuryer Boti', 'courier-bot', 'bot.js', { 
-    API_URL: `http://localhost:${port}/api`,
-    BOT_TOKEN: process.env.COURIER_BOT_TOKEN
-  });
-}, 5000); // Backend to'liq ishga tushishi uchun 5 soniya kutamiz
+  console.log('[START] Mijoz Boti va Kuryer Boti ishga tushmoqda...');
+  startCustomerBot(process.env.CUSTOMER_BOT_TOKEN, apiUrl);
+  startCourierBot(process.env.COURIER_BOT_TOKEN, apiUrl);
+}, 3000);
