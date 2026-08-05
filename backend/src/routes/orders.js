@@ -75,10 +75,12 @@ router.post("/", async (req, res) => {
       resolvedItems.push({ productId: product.id, quantity: i.quantity, price: product.price });
     }
 
-    const maqsudRes = await query("SELECT * FROM couriers WHERE \"fullName\" ILIKE '%Maqsud%' AND active = 1");
-    const maqsud = maqsudRes.rows[0] || null;
-    const courierId = maqsud ? maqsud.id : null;
-    const orderStatus = maqsud ? "assigned" : "new";
+    const activeCouriersRes = await query("SELECT * FROM couriers WHERE active = 1");
+    const activeCouriers = activeCouriersRes.rows;
+
+    const maqsud = activeCouriers.find(c => c.fullName && c.fullName.toLowerCase().includes("maqsud"));
+    const courierId = maqsud ? maqsud.id : (activeCouriers.length ? activeCouriers[0].id : null);
+    const orderStatus = courierId ? "assigned" : "new";
 
     const orderRes = await query(
       `INSERT INTO orders ("customerId", "courierId", status, "totalPrice", address, note, "deliveryLat", "deliveryLng", "paymentType")
@@ -103,29 +105,15 @@ router.post("/", async (req, res) => {
     const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
     const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
 
-    const activeCouriersRes = await query("SELECT * FROM couriers WHERE active = 1");
-    const activeCouriers = activeCouriersRes.rows;
+    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
 
-    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
-
-    if (courierId) {
-      const assignedCourier = activeCouriers.find(c => c.id === courierId);
-      if (assignedCourier && assignedCourier.telegramId) {
-        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: assignedCourier.telegramId, text: notifyText, parse_mode: "HTML" })
-        }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
-      }
-    } else {
-      for (const c of activeCouriers) {
-        if (!c.telegramId) continue;
-        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
-        }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
-      }
+    for (const c of activeCouriers) {
+      if (!c.telegramId) continue;
+      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
+      }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
     }
 
     res.json(fullOrder);
@@ -232,7 +220,7 @@ router.get("/courier/:telegramId", async (req, res) => {
     const courier = courierRes.rows[0];
 
     const rows = await query(
-      "SELECT id FROM orders WHERE \"courierId\" = $1 AND status IN ('assigned','delivering') ORDER BY \"createdAt\" ASC",
+      "SELECT id FROM orders WHERE (\"courierId\" = $1 OR \"courierId\" IS NULL) AND status IN ('new','assigned','delivering') ORDER BY \"createdAt\" ASC",
       [courier.id]
     );
     const orders = [];
