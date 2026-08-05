@@ -17,7 +17,7 @@ const httpAgent = new http.Agent({ keepAlive: true });
 const api = axios.create({ baseURL: API_URL, httpAgent });
 
 // Disk (sessions.json) ga yozmasdan, to'g'ridan-to'g'ri RAM (Operativ xotira) da chaqqon ishlash
-bot.use(session());
+bot.use(session({ defaultSession: () => ({}) }));
 
 // ===================== I18N =====================
 const i18n = {
