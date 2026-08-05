@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Suv Yetkazish — Admin Panel</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#F3F6F9; }
+  .brand { color: #146c94; }
+  .bg-brand { background-color: #146c94; }
+  .bg-brand-dark { background-color: #0b3d5c; }
+  .kanban-col { min-height: 200px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .tab-btn.active { background:#146c94; color:white; }
+  .status-pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+</style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Yuqori panel -->
+  <header class="bg-brand-dark text-white sticky top-0 z-20 shadow">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 5 10.5 5 15.5C5 19.09 8.13 22 12 22C15.87 22 19 19.09 19 15.5C19 10.5 12 2 12 2Z" fill="#7FDBFF"/>
+        </svg>
+        <span class="font-semibold text-lg">Suv Yetkazish — Admin Panel</span>
+      </div>
+      <div class="flex items-center gap-3 text-sm">
+        <span id="userLabel" class="text-cyan-100"></span>
+        <button id="logoutBtn" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition">Chiqish</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tablar -->
+  <nav class="max-w-7xl mx-auto px-4 pt-4">
+    <div id="tabs" class="flex flex-wrap gap-2 mb-4">
+      <button data-tab="orders" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">📦 Zakazlar</button>
+      <button data-tab="couriers" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">🚚 Kuryerlar</button>
+      <button data-tab="map" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">🗺 Xarita</button>
+      <button data-tab="warehouse" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">🧴 Idishlar balansi</button>
+      <button data-tab="customers" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">👥 Mijozlar</button>
+      <button data-tab="stats" data-admin-only="1" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">📊 Statistika</button>
+      <button data-tab="products" data-admin-only="1" class="tab-btn px-4 py-2 rounded-lg bg-white text-slate-600 font-medium text-sm shadow-sm">🛒 Mahsulotlar</button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 pb-16">
+
+    <!-- ZAKAZLAR -->
+    <section id="tab-orders" class="tab-panel">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-slate-700">Zakazlar oqimi</h2>
+        <button id="refreshOrders" class="text-sm text-brand underline">🔄 Yangilash</button>
+      </div>
+      <div id="ordersBoard" class="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- KURYERLAR -->
+    <section id="tab-couriers" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-slate-700">Kuryerlar</h2>
+        <button id="addCourierBtn" data-admin-only="1" class="bg-brand text-white text-sm px-3 py-1.5 rounded-lg hidden">+ Kuryer qo'shish</button>
+      </div>
+      <div id="courierAddForm" class="card p-4 mb-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input id="courierTelegramId" placeholder="Telegram ID" class="border rounded-lg px-3 py-2 text-sm" />
+          <input id="courierFullName" placeholder="F.I.Sh" class="border rounded-lg px-3 py-2 text-sm" />
+          <input id="courierPhone" placeholder="Telefon" class="border rounded-lg px-3 py-2 text-sm" />
+          <button id="saveCourierBtn" class="bg-brand text-white rounded-lg px-3 py-2 text-sm">Saqlash</button>
+        </div>
+      </div>
+      <div id="couriersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- XARITA -->
+    <section id="tab-map" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-slate-700">Kuryerlarni jonli kuzatish</h2>
+      </div>
+      <div id="map" class="w-full rounded-xl shadow border" style="height: 600px;"></div>
+    </section>
+
+    <!-- IDISHLAR BALANSI -->
+    <section id="tab-warehouse" class="tab-panel hidden">
+      <h2 class="text-lg font-semibold text-slate-700 mb-1">Suv va Idishlar balansi (18.9L)</h2>
+      <p class="text-sm text-slate-400 mb-3">Zavoddan kelgan, sotiylgan va qolgan suvlar hisobi</p>
+      <div id="warehouseCards" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4"></div>
+      <div id="restockForm" data-admin-only="1" class="card p-4 max-w-md hidden">
+        <h3 class="font-medium text-slate-700 mb-2">Zavoddan suv qabul qilish</h3>
+        <div class="flex gap-2">
+          <input id="restockCount" type="number" min="1" placeholder="Nechta to'liq suv keldi?" class="border rounded-lg px-3 py-2 text-sm flex-1" />
+          <button id="restockBtn" class="bg-brand text-white rounded-lg px-4 py-2 text-sm">Qabul qilish</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MIJOZLAR -->
+    <section id="tab-customers" class="tab-panel hidden">
+      <h2 class="text-lg font-semibold text-slate-700 mb-3">Mijozlar va idish qarzdorligi</h2>
+      <div class="card overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-500 text-left">
+            <tr>
+              <th class="px-4 py-2">F.I.Sh</th>
+              <th class="px-4 py-2">Telefon</th>
+              <th class="px-4 py-2">Idish qarzi</th>
+              <th class="px-4 py-2">Ro'yxatdan o'tgan</th>
+            </tr>
+          </thead>
+          <tbody id="customersTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STATISTIKA (faqat Admin) -->
+    <section id="tab-stats" class="tab-panel hidden">
+      <h2 class="text-lg font-semibold text-slate-700 mb-3">Statistika va hisobotlar</h2>
+
+      <div class="flex gap-2 mb-4">
+        <button data-period="day" class="period-btn px-3 py-1.5 rounded-lg text-sm bg-white shadow-sm">Kunlik</button>
+        <button data-period="week" class="period-btn px-3 py-1.5 rounded-lg text-sm bg-white shadow-sm">Haftalik</button>
+        <button data-period="month" class="period-btn px-3 py-1.5 rounded-lg text-sm bg-white shadow-sm">Oylik</button>
+      </div>
+
+      <div id="salesCards" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-4">
+          <h3 class="font-medium text-slate-700 mb-3">🏆 Top mijozlar</h3>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500 text-left">
+              <tr><th class="py-1">Mijoz</th><th class="py-1">Buyurtma</th><th class="py-1">Summasi</th></tr>
+            </thead>
+            <tbody id="topCustomersTable"></tbody>
+          </table>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-medium text-slate-700 mb-3">🚚 Kuryerlar samaradorligi</h3>
+          <table class="w-full text-sm">
+            <thead class="text-slate-500 text-left">
+              <tr><th class="py-1">Kuryer</th><th class="py-1">Bajarilgan</th><th class="py-1">O'rtacha vaqt</th></tr>
+            </thead>
+            <tbody id="courierPerfTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAHSULOTLAR (faqat Admin) -->
+    <section id="tab-products" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-slate-700">Mahsulotlar va narxlar</h2>
+        <button id="addProductBtn" class="bg-brand text-white text-sm px-3 py-1.5 rounded-lg">+ Mahsulot qo'shish</button>
+      </div>
+      <div id="productAddForm" class="card p-4 mb-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input id="productName" placeholder="Nomi" class="border rounded-lg px-3 py-2 text-sm" />
+          <input id="productPrice" type="number" placeholder="Narxi (so'm)" class="border rounded-lg px-3 py-2 text-sm" />
+          <input id="productVolume" type="number" step="0.1" placeholder="Hajmi (litr)" value="18.9" class="border rounded-lg px-3 py-2 text-sm" />
+          <button id="saveProductBtn" class="bg-brand text-white rounded-lg px-3 py-2 text-sm">Saqlash</button>
+        </div>
+      </div>
+      <div id="productsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+  </main>
+
+  <!-- Kuryerga biriktirish modali -->
+  <div id="assignModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-30">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm">
+      <h3 class="font-semibold text-slate-700 mb-3">Kuryerga biriktirish</h3>
+      <select id="assignCourierSelect" class="w-full border rounded-lg px-3 py-2 text-sm mb-4"></select>
+      <div class="flex justify-end gap-2">
+        <button id="assignCancelBtn" class="px-4 py-2 text-sm rounded-lg text-slate-500">Bekor qilish</button>
+        <button id="assignConfirmBtn" class="px-4 py-2 text-sm rounded-lg bg-brand text-white">Biriktirish</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

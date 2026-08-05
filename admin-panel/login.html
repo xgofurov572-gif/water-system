@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kirish — Suv Yetkazish Admin Panel</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, #0b3d5c 0%, #146c94 55%, #19a7ce 100%);
+  }
+</style>
+</head>
+<body class="bg-gradient-brand min-h-screen flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur mb-4">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 5 10.5 5 15.5C5 19.09 8.13 22 12 22C15.87 22 19 19.09 19 15.5C19 10.5 12 2 12 2Z" fill="#7FDBFF"/>
+        </svg>
+      </div>
+      <h1 class="text-white text-2xl font-semibold">Suv Yetkazish</h1>
+      <p class="text-cyan-100/80 text-sm mt-1">Admin boshqaruv paneli</p>
+    </div>
+
+    <form id="loginForm" class="bg-white rounded-2xl shadow-xl p-7 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-600 mb-1">Login</label>
+        <input id="username" type="text" required autocomplete="username"
+          class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+          placeholder="admin" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-600 mb-1">Parol</label>
+        <input id="password" type="password" required autocomplete="current-password"
+          class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+          placeholder="••••••••" />
+      </div>
+
+      <p id="errorMsg" class="text-sm text-red-600 hidden"></p>
+
+      <button type="submit"
+        class="w-full bg-[#146c94] hover:bg-[#0b3d5c] transition text-white font-medium rounded-lg py-2.5">
+        Kirish
+      </button>
+
+      <p class="text-xs text-slate-400 text-center pt-2">
+        Sinov uchun: <span class="font-mono">admin / admin123</span> yoki
+        <span class="font-mono">operator / operator123</span>
+      </p>
+    </form>
+  </div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const errorMsg = document.getElementById('errorMsg');
+
+  // Agar allaqachon token mavjud bo'lsa, to'g'ridan-to'g'ri panelga o'tkazamiz
+  if (localStorage.getItem('token')) {
+    window.location.href = '/index.html';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorMsg.textContent = data.error || 'Xatolik yuz berdi';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('fullName', data.fullName || '');
+      window.location.href = '/index.html';
+    } catch (err) {
+      errorMsg.textContent = 'Serverga ulanib bo\'lmadi. Backend ishga tushirilganini tekshiring.';
+      errorMsg.classList.remove('hidden');
+    }
+  });
+</script>
+</body>
+</html>

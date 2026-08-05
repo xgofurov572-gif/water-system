@@ -1,0 +1,15 @@
+{
+  "name": "water-system",
+  "version": "1.0.0",
+  "description": "Su yetkazib berish tizimi - Backend + Botlar",
+  "main": "backend/src/index.js",
+  "scripts": {
+    "start": "node backend/src/index.js & node customer-bot/bot.js & node courier-bot/bot.js",
+    "start:backend": "node backend/src/index.js",
+    "start:customer-bot": "node customer-bot/bot.js",
+    "start:courier-bot": "node courier-bot/bot.js"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

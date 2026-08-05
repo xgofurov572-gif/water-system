@@ -1,0 +1,10 @@
+node_modules/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+backups/
+sessions.json
+.env
+node-v22.14.0-win-x64/
+migrate.js
