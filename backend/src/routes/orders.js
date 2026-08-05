@@ -102,7 +102,7 @@ router.post("/", async (req, res) => {
 
     const fullOrder = await getOrderFull(orderId);
     const token = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
-    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
+    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nTelefon: ${fullOrder.customer?.phone || customer.phone || "Noma'lum"}\nMiqdor: ${totalBottles} ta idish\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
     const https = require('https');
     
     // Debug array to capture notification results
