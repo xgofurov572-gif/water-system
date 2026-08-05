@@ -1,0 +1,52 @@
+services:
+  # ===== Backend + Admin panel =====
+  - type: web
+    name: water-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node src/index.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: COURIER_BOT_TOKEN
+        sync: false
+      - key: CUSTOMER_BOT_TOKEN
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+
+  # ===== Mijoz boti =====
+  - type: worker
+    name: water-customer-bot
+    runtime: node
+    rootDir: customer-bot
+    buildCommand: npm install
+    startCommand: node bot.js
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: API_URL
+        sync: false
+
+  # ===== Kuryer boti =====
+  - type: worker
+    name: water-courier-bot
+    runtime: node
+    rootDir: courier-bot
+    buildCommand: npm install
+    startCommand: node bot.js
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: API_URL
+        sync: false
