@@ -13,12 +13,12 @@ services:
       - key: PORT
         value: 4000
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://neondb_owner:npg_6fF7SLygGoHt@ep-nameless-bread-ayi58quk-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - key: JWT_SECRET
-        sync: false
+        value: water_super_secret_key_123!
       - key: COURIER_BOT_TOKEN
-        sync: false
+        value: 8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY
       - key: CUSTOMER_BOT_TOKEN
-        sync: false
+        value: 8696687383:AAEDnnQZ06JXmBYrYUMZme6-5zbxarxTD04
       - key: PUBLIC_URL
-        sync: false
+        value: https://water-backend-hymh.onrender.com
