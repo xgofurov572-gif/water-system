@@ -101,19 +101,22 @@ router.post("/", async (req, res) => {
     await query("UPDATE warehouse SET \"fullBottles\" = \"fullBottles\" - $1 WHERE id = $2", [totalBottles, wh.id]);
 
     const fullOrder = await getOrderFull(orderId);
-
-    const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
-    const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
-
+    const token = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
     const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
 
     for (const c of activeCouriers) {
       if (!c.telegramId) continue;
-      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
-      }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
+        });
+        const data = await res.json();
+        console.log(`Notification to ${c.fullName} (${c.telegramId}):`, data);
+      } catch (err) {
+        console.error(`Network error sending to ${c.fullName}:`, err);
+      }
     }
 
     res.json(fullOrder);
