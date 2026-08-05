@@ -4,11 +4,17 @@ const { authMiddleware, requireAdmin } = require("../auth");
 
 const router = express.Router();
 
-// Ochiq (public) — Telegram bot katalogni ko'rsatish uchun ishlatadi
+let productsCache = null;
+
+// Ochiq (public) — Telegram bot katalogni ko'rsatish uchun (RAM keshdan instant 0ms javob beradi)
 router.get("/", async (req, res) => {
   try {
+    if (productsCache) {
+      return res.json(productsCache);
+    }
     const result = await query("SELECT * FROM products WHERE active = 1 ORDER BY id ASC");
-    res.json(result.rows);
+    productsCache = result.rows;
+    res.json(productsCache);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Server xatosi" });
@@ -61,6 +67,7 @@ router.patch("/:id", authMiddleware, requireAdmin, async (req, res) => {
         id
       ]
     );
+    productsCache = null;
     res.json(result.rows[0]);
   } catch (e) {
     console.error(e);

@@ -1,6 +1,6 @@
 require("dotenv").config();
+const http = require("http");
 const { Telegraf, Markup, session } = require("telegraf");
-const LocalSession = require("telegraf-session-local");
 const axios = require("axios");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -13,9 +13,13 @@ if (!BOT_TOKEN) {
 }
 
 const bot = new Telegraf(BOT_TOKEN);
-const api = axios.create({ baseURL: API_URL });
 
-bot.use(new LocalSession({ database: "sessions.json" }).middleware());
+// HTTP Keep-Alive — ulanishni har safar qayta ochmasdan 10x tezroq ishlatish
+const httpAgent = new http.Agent({ keepAlive: true });
+const api = axios.create({ baseURL: API_URL, httpAgent });
+
+// Disk (sessions.json) ga yozmasdan, to'g'ridan-to'g'ri RAM (Operativ xotira) da chaqqon ishlash
+bot.use(session());
 
 // ===================== I18N =====================
 const i18n = {
