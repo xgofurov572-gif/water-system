@@ -260,9 +260,21 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
 
     url += points.join("~") + "&rtt=auto";
 
-    const text = (ctx.session?.lang === 'ru') 
-      ? `🗺 <b>Ваш оптимальный маршрут готов!</b>\n\nОн построен для ближайших ${route.length} заказов начиная от вашего текущего местоположения.`
-      : `🗺 <b>Optimal marshrutingiz tayyor!</b>\n\nSiz turgan joydan boshlab eng yaqin ${route.length} ta buyurtma uchun yo'nalish chizildi.`;
+    let text = (ctx.session?.lang === 'ru') 
+      ? `🗺 <b>Ваш оптимальный маршрут готов!</b>\n\nОн построен для ближайших ${route.length} заказов начиная от вашего текущего местоположения.\n\n`
+      : `🗺 <b>Optimal marshrutingiz tayyor!</b>\n\nSiz turgan joydan boshlab eng yaqin ${route.length} ta buyurtma uchun yo'nalish chizildi.\n\n`;
+
+    route.forEach((o, index) => {
+      const totalBottles = o.items.reduce((sum, item) => sum + item.quantity, 0);
+      const phone = o.customer?.phone || "Noma'lum";
+      
+      if (ctx.session?.lang === 'ru') {
+        const ruPhone = o.customer?.phone || "Неизвестно";
+        text += `📍 ${index + 1}-адрес: Заказ #${o.id}\n📞 Тел: ${ruPhone}\n📦 Кол-во: ${totalBottles} шт.\n\n`;
+      } else {
+        text += `📍 ${index + 1}-manzil: Buyurtma #${o.id}\n📞 Tel: ${phone}\n📦 Miqdor: ${totalBottles} ta\n\n`;
+      }
+    });
 
     await ctx.reply(text, {
       parse_mode: "HTML",
