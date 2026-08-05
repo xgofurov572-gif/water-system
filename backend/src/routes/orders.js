@@ -103,8 +103,11 @@ router.post("/", async (req, res) => {
     const fullOrder = await getOrderFull(orderId);
     const token = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
     const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
-
     const https = require('https');
+    
+    // Debug array to capture notification results
+    const notifyDebug = [];
+
     for (const c of activeCouriers) {
       if (!c.telegramId) continue;
       try {
@@ -119,20 +122,32 @@ router.post("/", async (req, res) => {
             'Content-Length': Buffer.byteLength(postData)
           }
         };
-        const req = https.request(options, (res) => {
-          res.on('data', () => {});
+        
+        // Wrap in a Promise to await the response
+        await new Promise((resolve, reject) => {
+          const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+              notifyDebug.push({ courier: c.fullName, status: res.statusCode, response: body });
+              resolve();
+            });
+          });
+          req.on('error', (e) => {
+            notifyDebug.push({ courier: c.fullName, error: e.message });
+            resolve(); // Resolve anyway so it doesn't crash the loop
+          });
+          req.write(postData);
+          req.end();
         });
-        req.on('error', (e) => {
-          console.error(`Telegram notification error for ${c.fullName}:`, e);
-        });
-        req.write(postData);
-        req.end();
       } catch (err) {
-        console.error(`Network error sending to ${c.fullName}:`, err);
+        notifyDebug.push({ courier: c.fullName, catchError: err.message });
       }
     }
 
-    res.json(fullOrder);
+    // Attach debug info to response
+    const responseBody = { ...fullOrder, notifyDebug };
+    res.json(responseBody);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Server xatosi" });
