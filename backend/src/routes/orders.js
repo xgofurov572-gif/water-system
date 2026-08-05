@@ -104,16 +104,29 @@ router.post("/", async (req, res) => {
     const token = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
     const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
 
+    const https = require('https');
     for (const c of activeCouriers) {
       if (!c.telegramId) continue;
       try {
-        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
+        const postData = JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" });
+        const options = {
+          hostname: 'api.telegram.org',
+          port: 443,
+          path: `/bot${token}/sendMessage`,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+        const req = https.request(options, (res) => {
+          res.on('data', () => {});
         });
-        const data = await res.json();
-        console.log(`Notification to ${c.fullName} (${c.telegramId}):`, data);
+        req.on('error', (e) => {
+          console.error(`Telegram notification error for ${c.fullName}:`, e);
+        });
+        req.write(postData);
+        req.end();
       } catch (err) {
         console.error(`Network error sending to ${c.fullName}:`, err);
       }
