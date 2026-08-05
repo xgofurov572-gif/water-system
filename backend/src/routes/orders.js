@@ -278,7 +278,7 @@ router.get("/courier/:telegramId/route", async (req, res) => {
     }
 
     const rows = await query(
-      "SELECT id FROM orders WHERE \"courierId\" = $1 AND status IN ('assigned','delivering')",
+      "SELECT id FROM orders WHERE (\"courierId\" = $1 OR \"courierId\" IS NULL) AND status IN ('new','assigned','delivering')",
       [courier.id]
     );
     if (!rows.rows.length) return res.json([]);
