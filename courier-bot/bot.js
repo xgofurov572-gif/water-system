@@ -261,20 +261,8 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
     url += points.join("~") + "&rtt=auto";
 
     let text = (ctx.session?.lang === 'ru') 
-      ? `🗺 <b>Ваш оптимальный маршрут готов!</b>\n\nОн построен для ближайших ${route.length} заказов начиная от вашего текущего местоположения.\n\n`
-      : `🗺 <b>Optimal marshrutingiz tayyor!</b>\n\nSiz turgan joydan boshlab eng yaqin ${route.length} ta buyurtma uchun yo'nalish chizildi.\n\n`;
-
-    route.forEach((o, index) => {
-      const totalBottles = o.items.reduce((sum, item) => sum + item.quantity, 0);
-      const phone = o.customer?.phone || "Noma'lum";
-      
-      if (ctx.session?.lang === 'ru') {
-        const ruPhone = o.customer?.phone || "Неизвестно";
-        text += `📍 ${index + 1}-адрес: Заказ #${o.id}\n📞 Тел: ${ruPhone}\n📦 Кол-во: ${totalBottles} шт.\n\n`;
-      } else {
-        text += `📍 ${index + 1}-manzil: Buyurtma #${o.id}\n📞 Tel: ${phone}\n📦 Miqdor: ${totalBottles} ta\n\n`;
-      }
-    });
+      ? `🗺 <b>Ваш оптимальный маршрут готов!</b>\n\nОн построен для ближайших ${route.length} заказов начиная от вашего текущего местоположения.`
+      : `🗺 <b>Optimal marshrutingiz tayyor!</b>\n\nSiz turgan joydan boshlab eng yaqin ${route.length} ta buyurtma uchun yo'nalish chizildi.`;
 
     await ctx.reply(text, {
       parse_mode: "HTML",
@@ -283,8 +271,8 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
       ])
     });
 
-    for (const order of route) {
-      await sendOrderCard(ctx, order);
+    for (let i = 0; i < route.length; i++) {
+      await sendOrderCard(ctx, route[i], i + 1);
     }
 
   } catch (e) {
@@ -299,12 +287,19 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
   }
 });
 
-async function sendOrderCard(ctx, order) {
+async function sendOrderCard(ctx, order, stopIndex = null) {
   const itemsText = order.items
     .map((i) => `• ${i.productName} × ${i.quantity} ta`)
     .join("\n");
 
-  const text = t(ctx, "order_card", order, itemsText);
+  let text = t(ctx, "order_card", order, itemsText);
+  
+  if (stopIndex !== null) {
+    const prefix = ctx.session?.lang === 'ru' 
+      ? `📍 <b>${stopIndex}-адрес</b>\n\n` 
+      : `📍 <b>${stopIndex}-manzil</b>\n\n`;
+    text = prefix + text;
+  }
 
   const buttons = [];
 
