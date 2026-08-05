@@ -84,6 +84,9 @@ const PORT = process.env.PORT || 4000;
 
 async function start() {
   try {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL topilmadi (Environment Variable bo'sh)!");
+    }
     await initSchema();
     await ensureAdminUser();
     app.listen(PORT, () => {
@@ -92,7 +95,8 @@ async function start() {
       initCronJobs();
     });
   } catch (e) {
-    console.error("❌ Server ishga tushishda xatolik:", e.message);
+    console.error("❌ Server ishga tushishda xatolik yuz berdi!");
+    console.error(e);
     process.exit(1);
   }
 }
