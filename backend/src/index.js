@@ -28,8 +28,8 @@ function initCronJobs() {
   cron.schedule("0 9 * * *", async () => {
     console.log("⏰ 09:00 - Kuryerlarga marshrut eslatmasini yuborish");
     try {
-      const couriersRes = await query("SELECT * FROM couriers WHERE active = 1");
-      const token = process.env.COURIER_BOT_TOKEN;
+      const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
+      const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
       if (!token) return;
       for (const c of couriersRes.rows) {
         if (!c.telegramId) continue;

@@ -100,14 +100,30 @@ router.post("/", async (req, res) => {
 
     const fullOrder = await getOrderFull(orderId);
 
-    if (maqsud && maqsud.telegramId) {
-      const token = process.env.COURIER_BOT_TOKEN;
-      if (token) {
-        const text = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nSizga yangi buyurtma avtomatik biriktirildi: #${fullOrder.id}\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
+    const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
+    const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
+
+    const activeCouriersRes = await query("SELECT * FROM couriers WHERE active = 1");
+    const activeCouriers = activeCouriersRes.rows;
+
+    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
+
+    if (courierId) {
+      const assignedCourier = activeCouriers.find(c => c.id === courierId);
+      if (assignedCourier && assignedCourier.telegramId) {
         fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: maqsud.telegramId, text, parse_mode: "HTML" })
+          body: JSON.stringify({ chat_id: assignedCourier.telegramId, text: notifyText, parse_mode: "HTML" })
+        }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
+      }
+    } else {
+      for (const c of activeCouriers) {
+        if (!c.telegramId) continue;
+        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" })
         }).catch(err => console.error("Kuryerga xabar yuborishda xatolik:", err));
       }
     }
@@ -155,7 +171,8 @@ router.patch("/:id/assign", authMiddleware, async (req, res) => {
 
     const fullOrder = await getOrderFull(id);
 
-    const token = process.env.COURIER_BOT_TOKEN;
+    const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
+    const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
     if (token && fullOrder.courier && fullOrder.courier.telegramId) {
       const text = `🔔 <b>Yangi buyurtma!</b>\nSizga yangi buyurtma biriktirildi: #${fullOrder.id}\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -187,7 +204,8 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
     const fullOrder = await getOrderFull(id);
 
     if (status === "delivering" && fullOrder.customer && fullOrder.customer.telegramId) {
-      const token = process.env.CUSTOMER_BOT_TOKEN;
+      const defaultCustomerToken = "8696687383:AAEDnnQZ06JXmBYrYUMZme6-5zbxarxTD04";
+      const token = process.env.CUSTOMER_BOT_TOKEN || defaultCustomerToken;
       if (token) {
         const text = `🚚 <b>Buyurtmangiz yo'lga chiqdi!</b>\n\nKuryer siz tomonga kelyapti. Iltimos, kuting.`;
         fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
