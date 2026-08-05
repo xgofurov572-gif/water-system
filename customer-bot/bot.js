@@ -282,6 +282,11 @@ bot.on("text", async (ctx, next) => {
     else return ctx.reply(t(ctx, "choose_payment"));
 
     const cart = ctx.session.cart || [];
+    if (!cart.length) {
+      ctx.session.step = null;
+      return ctx.reply(t(ctx, "cart_empty"));
+    }
+    
     try {
       const { data: order } = await api.post("/orders", {
         telegramId,
