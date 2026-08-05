@@ -111,7 +111,7 @@ router.post("/", async (req, res) => {
       `🏠 Manzil: ${fullOrder.address || "Karta orqali"}\n\n` +
       `${resolvedItems.map(i => `• ${i.productName} × ${i.quantity} ta`).join('\\n')}\n\n` +
       `💰 Summa: <b>${fullOrder.totalPrice} so'm</b>\n` +
-      `💳 To'lov turi: ${fullOrder.paymentType === 'cash' ? "Naqd pul" : "Karta"}`;
+      `💳 To'lov turi: <b>${fullOrder.paymentType === 'karta' ? "Karta orqali" : "Naqd pul"}</b>`;
 
     const buttons = [];
     if (fullOrder.deliveryLat != null && fullOrder.deliveryLng != null) {
