@@ -6,6 +6,10 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+pool.on('error', (err, client) => {
+  console.error('Bazada kutilmagan xatolik (Neon connection drop):', err);
+});
+
 // Helper: oddiy query
 async function query(text, params) {
   const client = await pool.connect();
