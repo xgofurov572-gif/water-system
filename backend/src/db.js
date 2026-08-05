@@ -10,15 +10,9 @@ pool.on('error', (err, client) => {
   console.error('Bazada kutilmagan xatolik (Neon connection drop):', err);
 });
 
-// Helper: oddiy query
+// Helper: tezkor query (pool ulanishlarini to'g'ridan-to'g'ri qayta ishlatadi)
 async function query(text, params) {
-  const client = await pool.connect();
-  try {
-    const res = await client.query(text, params);
-    return res;
-  } finally {
-    client.release();
-  }
+  return await pool.query(text, params);
 }
 
 // Sxema yaratish (server ishga tushganda bir marta chaqiriladi)

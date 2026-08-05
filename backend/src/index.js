@@ -14,6 +14,17 @@ const warehouseRoutes = require("./routes/warehouse");
 const statsRoutes = require("./routes/stats");
 
 function initCronJobs() {
+  // Serverni Render.com da 24/7 uyg'oq ushlab turish uchun har 10 daqiqada ping qilish
+  cron.schedule("*/10 * * * *", async () => {
+    const url = process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/health` : `http://localhost:${PORT}/health`;
+    try {
+      await fetch(url);
+      console.log("⚡ Keep-alive ping bajarildi");
+    } catch (e) {
+      console.error("Keep-alive ping xatosi:", e.message);
+    }
+  });
+
   cron.schedule("0 9 * * *", async () => {
     console.log("⏰ 09:00 - Kuryerlarga marshrut eslatmasini yuborish");
     try {
