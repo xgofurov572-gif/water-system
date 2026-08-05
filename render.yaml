@@ -10,10 +10,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 4000
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_6fF7SLygGoHt@ep-nameless-bread-ayi58quk-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        value: postgresql://neondb_owner:npg_6fF7SLygGoHt@ep-nameless-bread-ayi58quk-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: JWT_SECRET
         value: water_super_secret_key_123!
       - key: COURIER_BOT_TOKEN
