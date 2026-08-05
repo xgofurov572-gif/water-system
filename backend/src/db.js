@@ -1,8 +1,11 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+const defaultDbUrl = "postgresql://neondb_owner:npg_6fF7SLygGoHt@ep-nameless-bread-ayi58quk-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require";
+const dbUrl = process.env.DATABASE_URL || defaultDbUrl;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
   ssl: { rejectUnauthorized: false }
 });
 

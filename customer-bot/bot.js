@@ -4,7 +4,8 @@ const { Telegraf, Markup, session } = require("telegraf");
 const axios = require("axios");
 
 function startCustomerBot(customToken, customApiUrl) {
-  const BOT_TOKEN = customToken || process.env.CUSTOMER_BOT_TOKEN || process.env.BOT_TOKEN;
+  const defaultToken = "8696687383:AAEDnnQZ06JXmBYrYUMZme6-5zbxarxTD04";
+  const BOT_TOKEN = customToken || process.env.CUSTOMER_BOT_TOKEN || process.env.BOT_TOKEN || defaultToken;
   const API_URL = customApiUrl || process.env.API_URL || "http://localhost:4000/api";
 
   if (!BOT_TOKEN) {

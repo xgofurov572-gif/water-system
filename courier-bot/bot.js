@@ -3,7 +3,8 @@ const { Telegraf, Markup, session } = require("telegraf");
 const axios = require("axios");
 
 function startCourierBot(customToken, customApiUrl) {
-  const BOT_TOKEN = customToken || process.env.COURIER_BOT_TOKEN || process.env.BOT_TOKEN;
+  const defaultToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
+  const BOT_TOKEN = customToken || process.env.COURIER_BOT_TOKEN || process.env.BOT_TOKEN || defaultToken;
   const API_URL = customApiUrl || process.env.API_URL || "http://localhost:4000/api";
 
   if (!BOT_TOKEN) {

@@ -95,9 +95,6 @@ const PORT = process.env.PORT || 4000;
 
 async function start() {
   try {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL topilmadi (Environment Variable bo'sh)!");
-    }
     await initSchema();
     await ensureAdminUser();
     app.listen(PORT, () => {
