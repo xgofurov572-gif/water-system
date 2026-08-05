@@ -102,8 +102,30 @@ router.post("/", async (req, res) => {
 
     const fullOrder = await getOrderFull(orderId);
     const token = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
-    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\nBuyurtma #${fullOrder.id}\nManzil: ${fullOrder.address || "Ko'rsatilmagan"}\nTelefon: ${fullOrder.customer?.phone || customer.phone || "Noma'lum"}\nMiqdor: ${totalBottles} ta idish\nJami: ${fullOrder.totalPrice} so'm\n\nIltimos, bot menyusidagi 📋 <b>Buyurtmalar</b> bo'limiga kirib ko'ring.`;
     const https = require('https');
+    
+    const notifyText = `🔔 <b>Yangi buyurtma kelib tushdi!</b>\n\n` +
+      `📦 <b>Buyurtma #${fullOrder.id}</b>\n` +
+      `👤 Mijoz: ${fullOrder.customer?.fullName || customer.fullName || "Noma'lum"}\n` +
+      `📞 Tel: ${fullOrder.customer?.phone || customer.phone || "—"}\n` +
+      `🏠 Manzil: ${fullOrder.address || "Karta orqali"}\n\n` +
+      `${resolvedItems.map(i => `• ${i.productName} × ${i.quantity} ta`).join('\\n')}\n\n` +
+      `💰 Summa: <b>${fullOrder.totalPrice} so'm</b>\n` +
+      `💳 To'lov turi: ${fullOrder.paymentType === 'cash' ? "Naqd pul" : "Karta"}`;
+
+    const buttons = [];
+    if (fullOrder.deliveryLat != null && fullOrder.deliveryLng != null) {
+      const yandexUrl = `https://yandex.ru/maps/?rtext=~${fullOrder.deliveryLat},${fullOrder.deliveryLng}&rtt=auto`;
+      buttons.push([{ text: "🗺 Yandex Navigator", url: yandexUrl }]);
+    }
+    const customerPhone = fullOrder.customer?.phone || customer.phone;
+    if (customerPhone) {
+      buttons.push([{ text: `📞 ${customerPhone}`, callback_data: `noop` }]);
+    }
+    buttons.push([
+      { text: "▶️ Yo'lga chiqdim", callback_data: `onway_${fullOrder.id}` },
+      { text: "✅ Yetkazib berdim", callback_data: `done_${fullOrder.id}` }
+    ]);
     
     // Debug array to capture notification results
     const notifyDebug = [];
@@ -111,7 +133,12 @@ router.post("/", async (req, res) => {
     for (const c of activeCouriers) {
       if (!c.telegramId) continue;
       try {
-        const postData = JSON.stringify({ chat_id: c.telegramId, text: notifyText, parse_mode: "HTML" });
+        const postData = JSON.stringify({ 
+          chat_id: c.telegramId, 
+          text: notifyText, 
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buttons }
+        });
         const options = {
           hostname: 'api.telegram.org',
           port: 443,
