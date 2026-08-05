@@ -20,6 +20,14 @@ function startProcess(name, dir, script, extraEnv = {}) {
 startProcess('Backend', 'backend', 'src/index.js');
 
 setTimeout(() => {
-  startProcess('Mijoz Boti', 'customer-bot', 'bot.js', { API_URL: 'http://localhost:4000/api' });
-  startProcess('Kuryer Boti', 'courier-bot', 'bot.js', { API_URL: 'http://localhost:4000/api' });
+  // Render dagi bitta xizmatda ikkita bot ishlayotgani uchun tokenlarni to'g'ri taqsimlaymiz
+  startProcess('Mijoz Boti', 'customer-bot', 'bot.js', { 
+    API_URL: 'http://localhost:4000/api',
+    BOT_TOKEN: process.env.CUSTOMER_BOT_TOKEN 
+  });
+  
+  startProcess('Kuryer Boti', 'courier-bot', 'bot.js', { 
+    API_URL: 'http://localhost:4000/api',
+    BOT_TOKEN: process.env.COURIER_BOT_TOKEN
+  });
 }, 5000); // Backend to'liq ishga tushishi uchun 5 soniya kutamiz
