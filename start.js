@@ -1,4 +1,4 @@
-require('dotenv').config();
+try { require('dotenv').config(); } catch(e) {}
 
 console.log('[START] Backend ishga tushmoqda...');
 require('./backend/src/index.js');
