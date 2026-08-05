@@ -283,6 +283,10 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
       ])
     });
 
+    for (const order of route) {
+      await sendOrderCard(ctx, order);
+    }
+
   } catch (e) {
     if (e.response?.status === 400) {
       const msg = ctx.session?.lang === 'ru' 
@@ -295,6 +299,47 @@ bot.hears(["🗺 Optimal marshrutni tuzish", "🗺 Составить маршр
   }
 });
 
+async function sendOrderCard(ctx, order) {
+  const itemsText = order.items
+    .map((i) => `• ${i.productName} × ${i.quantity} ta`)
+    .join("\n");
+
+  const text = t(ctx, "order_card", order, itemsText);
+
+  const buttons = [];
+
+  // Yandex Navigator (mijoz lokatsiyasi bo'lsa)
+  if (order.deliveryLat != null && order.deliveryLng != null) {
+    buttons.push([
+      Markup.button.url(t(ctx, "btn_navigate"), yandexUrl(order.deliveryLat, order.deliveryLng)),
+    ]);
+  }
+
+  // Qo'ng'iroq qilish
+  if (order.customer && order.customer.phone) {
+    buttons.push([
+      Markup.button.callback(t(ctx, "btn_call", order.customer.phone), `noop`),
+    ]);
+  }
+
+  // Holat tugmalari
+  const actionRow = [];
+  if (order.status === "assigned" || order.status === "new") {
+    actionRow.push(
+      Markup.button.callback(t(ctx, "btn_on_way"), `onway_${order.id}`)
+    );
+  }
+  actionRow.push(
+    Markup.button.callback(t(ctx, "btn_done"), `done_${order.id}`)
+  );
+  buttons.push(actionRow);
+
+  await ctx.reply(text, {
+    parse_mode: "HTML",
+    ...Markup.inlineKeyboard(buttons),
+  });
+}
+
 async function sendOrderList(ctx) {
   const telegramId = String(ctx.from.id);
   try {
@@ -305,44 +350,7 @@ async function sendOrderList(ctx) {
     }
 
     for (const order of orders) {
-      const itemsText = order.items
-        .map((i) => `• ${i.productName} × ${i.quantity} ta`)
-        .join("\n");
-
-      const text = t(ctx, "order_card", order, itemsText);
-
-      const buttons = [];
-
-      // Yandex Navigator (mijoz lokatsiyasi bo'lsa)
-      if (order.deliveryLat != null && order.deliveryLng != null) {
-        buttons.push([
-          Markup.button.url(t(ctx, "btn_navigate"), yandexUrl(order.deliveryLat, order.deliveryLng)),
-        ]);
-      }
-
-      // Qo'ng'iroq qilish
-      if (order.customer && order.customer.phone) {
-        buttons.push([
-          Markup.button.callback(t(ctx, "btn_call", order.customer.phone), `noop`),
-        ]);
-      }
-
-      // Holat tugmalari
-      const actionRow = [];
-      if (order.status === "assigned") {
-        actionRow.push(
-          Markup.button.callback(t(ctx, "btn_on_way"), `onway_${order.id}`)
-        );
-      }
-      actionRow.push(
-        Markup.button.callback(t(ctx, "btn_done"), `done_${order.id}`)
-      );
-      buttons.push(actionRow);
-
-      await ctx.reply(text, {
-        parse_mode: "HTML",
-        ...Markup.inlineKeyboard(buttons),
-      });
+      await sendOrderCard(ctx, order);
     }
   } catch (e) {
     console.error(e.response?.data || e.message);
