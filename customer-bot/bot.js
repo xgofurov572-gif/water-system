@@ -263,24 +263,7 @@ bot.on("text", async (ctx, next) => {
     if (text === t(ctx, "skip") || text === "➡️ Davom etish" || text === "➡️ Продолжить") {
       address = ""; 
     }
-    ctx.session.tempAddress = address;
-    ctx.session.step = "checkout_payment";
     
-    // So'rovnoma: To'lov turi
-    await ctx.reply(t(ctx, "choose_payment"), Markup.keyboard([
-      [t(ctx, "pay_cash"), t(ctx, "pay_card")],
-      [t(ctx, "back")]
-    ]).resize());
-    return;
-  }
-
-  // Checkout Payment Type
-  if (ctx.session.step === "checkout_payment") {
-    let paymentType = "naqd";
-    if (text === t(ctx, "pay_card")) paymentType = "karta";
-    else if (text === t(ctx, "pay_cash")) paymentType = "naqd";
-    else return ctx.reply(t(ctx, "choose_payment"));
-
     const cart = ctx.session.cart || [];
     if (!cart.length) {
       ctx.session.step = null;
@@ -291,8 +274,8 @@ bot.on("text", async (ctx, next) => {
       const { data: order } = await api.post("/orders", {
         telegramId,
         items: cart.map(i => ({ productId: i.productId, quantity: i.quantity })),
-        address: ctx.session.tempAddress || "",
-        paymentType: paymentType
+        address: address,
+        paymentType: "naqd"
       });
       ctx.session.cart = [];
       ctx.session.step = null;
@@ -302,12 +285,13 @@ bot.on("text", async (ctx, next) => {
         ...getMenu(ctx)
       });
     } catch (e) {
-      console.error(e);
-      await ctx.reply(t(ctx, "order_err"), getMenu(ctx));
+      console.error(e.response?.data || e.message);
+      await ctx.reply(t(ctx, "error"));
     }
     return;
   }
-  
+
+
   return next();
 });
 
