@@ -338,7 +338,9 @@ bot.on("contact", async (ctx) => {
   }
 });
 
-bot.on("location", async (ctx) => {
+bot.on("location", async (ctx, next) => {
+  if (ctx.session.step?.startsWith("admin_add_customer")) return next();
+  
   const telegramId = String(ctx.from.id);
   const { latitude, longitude } = ctx.message.location;
   try {
