@@ -59,7 +59,7 @@ router.post("/", async (req, res) => {
     const customerRes = await query("SELECT * FROM customers WHERE \"telegramId\" = $1", [String(telegramId)]);
     if (!customerRes.rows.length) return res.status(404).json({ error: "Mijoz ro'yxatdan o'tmagan. Avval /start bosing." });
     const customer = customerRes.rows[0];
-    if (!customer.phone || customer.latitude == null) {
+    if (!customer.phone || (customer.latitude == null && !address && !customer.address)) {
       return res.status(400).json({ error: "Avval telefon raqam va lokatsiyani yuboring" });
     }
 

@@ -689,7 +689,7 @@ bot.command("cancel", async (ctx) => {
   }
 });
 
-bot.on("text", async (ctx, next) => {
+bot.on("message", async (ctx, next) => {
   if (!ctx.session.step?.startsWith("admin_add_customer")) return next();
   const text = ctx.message.text;
 
@@ -706,7 +706,20 @@ bot.on("text", async (ctx, next) => {
   }
 
   if (ctx.session.step === "admin_add_customer_address") {
-    const address = text;
+    let address = "";
+    let lat = null;
+    let lng = null;
+
+    if (ctx.message.location) {
+      lat = ctx.message.location.latitude;
+      lng = ctx.message.location.longitude;
+      address = "Lokatsiya bo'yicha";
+    } else if (ctx.message.text) {
+      address = ctx.message.text;
+    } else {
+      return ctx.reply("Iltimos, manzilni matn shaklida yozing yoki lokatsiya tashlang.");
+    }
+
     const name = ctx.session.adminTempName;
     const phone = ctx.session.adminTempPhone;
     ctx.session.step = null;
@@ -715,7 +728,9 @@ bot.on("text", async (ctx, next) => {
       const { data: customer } = await api.post("/customers/manual", {
         fullName: name,
         phone: phone,
-        address: address
+        address: address,
+        latitude: lat,
+        longitude: lng
       });
       // Yangi buyurtma yaratish opsiyasini ko'rsatamiz
       ctx.session.lastManualCustomerId = customer.telegramId; 

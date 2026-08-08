@@ -33,7 +33,7 @@ router.post("/register", async (req, res) => {
 // Admin bot orqali qo'lda mijoz qo'shish
 router.post("/manual", async (req, res) => {
   try {
-    const { fullName, phone, address } = req.body;
+    const { fullName, phone, address, latitude, longitude } = req.body;
     if (!phone) return res.status(400).json({ error: "Telefon raqam majburiy" });
 
     // Tekshiramiz, balki bu raqam allaqachon bazada bordir
@@ -43,19 +43,23 @@ router.post("/manual", async (req, res) => {
     }
     const existing = await query("SELECT * FROM customers WHERE phone = $1", [phoneStr]);
     if (existing.rows.length > 0) {
-      // Agar manzil yangi kiritilgan bo'lsa yangilaymiz
+      // Agar manzil yoki lokatsiya kiritilgan bo'lsa yangilaymiz
+      const cId = existing.rows[0].id;
       if (address) {
-        await query("UPDATE customers SET address = $1, \"fullName\" = $2 WHERE id = $3", [address, fullName || existing.rows[0].fullName, existing.rows[0].id]);
+        await query("UPDATE customers SET address = $1, \"fullName\" = $2 WHERE id = $3", [address, fullName || existing.rows[0].fullName, cId]);
       }
-      const updated = await query("SELECT * FROM customers WHERE id = $1", [existing.rows[0].id]);
+      if (latitude && longitude) {
+        await query("UPDATE customers SET latitude = $1, longitude = $2 WHERE id = $3", [latitude, longitude, cId]);
+      }
+      const updated = await query("SELECT * FROM customers WHERE id = $1", [cId]);
       return res.json(updated.rows[0]);
     }
 
     // Yangi mijoz yaratamiz
     const fakeTelegramId = "manual_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
     const info = await query(
-      "INSERT INTO customers (\"telegramId\", \"fullName\", phone, address) VALUES ($1, $2, $3, $4) RETURNING *",
-      [fakeTelegramId, fullName || null, phoneStr, address || null]
+      "INSERT INTO customers (\"telegramId\", \"fullName\", phone, address, latitude, longitude) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [fakeTelegramId, fullName || null, phoneStr, address || null, latitude || null, longitude || null]
     );
     res.json(info.rows[0]);
   } catch (e) {
