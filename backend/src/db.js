@@ -88,8 +88,10 @@ async function initSchema() {
       note TEXT,
       "paymentType" TEXT DEFAULT 'naqd',
       "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
+      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+      "reminder_sent" INTEGER NOT NULL DEFAULT 0
     );
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS "reminder_sent" INTEGER NOT NULL DEFAULT 0;
 
     CREATE TABLE IF NOT EXISTS order_items (
       id SERIAL PRIMARY KEY,

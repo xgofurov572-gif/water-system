@@ -31,6 +31,7 @@ function initCronJobs() {
       const defaultCourierToken = "8641929454:AAFXvYRmp8xpdFQyG-jZ3hObXzdr7TuqAnY";
       const token = process.env.COURIER_BOT_TOKEN || defaultCourierToken;
       if (!token) return;
+      const couriersRes = await query("SELECT * FROM couriers WHERE active = 1");
       for (const c of couriersRes.rows) {
         if (!c.telegramId) continue;
         const text = `🔔 <b>Xayrli tong, ${c.fullName}!</b>\n\nBugungi marshrutingizni tuzish uchun bot menyusidan <b>"🗺 Optimal marshrutni tuzish"</b> tugmasini bosing.`;
@@ -46,6 +47,45 @@ function initCronJobs() {
       }
     } catch (e) {
       console.error("Cron DB xatosi:", e.message);
+    }
+
+    console.log("⏰ 09:00 - Adminlarga 10 kunlik eslatmalarni yuborish");
+    try {
+      const defaultCustomerToken = "8696687383:AAEDnnQZ06JXmBYrYUMZme6-5zbxarxTD04";
+      const adminToken = process.env.CUSTOMER_BOT_TOKEN || defaultCustomerToken;
+      
+      const adminsRes = await query("SELECT \"telegramId\" FROM admin_users WHERE \"telegramId\" IS NOT NULL");
+      const admins = adminsRes.rows;
+      if (admins.length > 0) {
+        const queryText = `
+          SELECT o.id, o."bottlesGiven", c."fullName", c.phone, c.address 
+          FROM orders o 
+          JOIN customers c ON o."customerId" = c.id
+          WHERE o.status = 'done' 
+            AND o.reminder_sent = 0 
+            AND o."createdAt" <= NOW() - INTERVAL '10 days'
+        `;
+        const ordersRes = await query(queryText);
+        const orders = ordersRes.rows;
+
+        for (const order of orders) {
+          for (const admin of admins) {
+            const text = `📞 <b>Mijozga qo'ng'iroq qilish vaqti keldi!</b>\n\nUshbu mijozga 10 kun oldin ${order.bottlesGiven} ta suv yetkazib berilgan edi:\n👤 Ismi: ${order.fullName || "Noma'lum"}\n📞 Tel: ${order.phone || "Noma'lum"}\n🏠 Manzil: ${order.address || "Noma'lum"}\n\nIltimos, mijoz bilan bog'lanib, yangi suv kerak yoki yo'qligini aniqlang.`;
+            try {
+              await fetch(`https://api.telegram.org/bot${adminToken}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: admin.telegramId, text, parse_mode: "HTML" })
+              });
+            } catch (err) {
+              console.error("Cron admin eslatma xatosi:", err.message);
+            }
+          }
+          await query(`UPDATE orders SET reminder_sent = 1 WHERE id = $1`, [order.id]);
+        }
+      }
+    } catch (e) {
+      console.error("Cron admin eslatma DB xatosi:", e.message);
     }
   }, { timezone: "Asia/Tashkent" });
 }

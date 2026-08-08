@@ -68,6 +68,24 @@ router.post("/manual", async (req, res) => {
   }
 });
 
+// Telefon raqam bo'yicha qidirish (Admin uchun)
+router.get("/phone/:phone", async (req, res) => {
+  try {
+    let phoneStr = String(req.params.phone);
+    if (!phoneStr.startsWith("+")) {
+      phoneStr = "+" + phoneStr.replace(/\D/g, "");
+    }
+    const existing = await query("SELECT * FROM customers WHERE phone = $1", [phoneStr]);
+    if (existing.rows.length > 0) {
+      return res.json(existing.rows[0]);
+    }
+    res.status(404).json({ error: "Topilmadi" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server xatosi" });
+  }
+});
+
 // Telegram bot: telefon raqam yuborilganda
 router.post("/:telegramId/phone", async (req, res) => {
   try {
@@ -76,7 +94,32 @@ router.post("/:telegramId/phone", async (req, res) => {
     const existing = await query("SELECT * FROM customers WHERE \"telegramId\" = $1", [String(telegramId)]);
     if (!existing.rows.length) return res.status(404).json({ error: "Mijoz topilmadi" });
 
-    await query("UPDATE customers SET phone = $1 WHERE id = $2", [phone, existing.rows[0].id]);
+    let phoneStr = String(phone);
+    if (!phoneStr.startsWith("+")) {
+      phoneStr = "+" + phoneStr.replace(/\D/g, "");
+    }
+
+    const oldCustomerRes = await query("SELECT * FROM customers WHERE phone = $1 AND id != $2", [phoneStr, existing.rows[0].id]);
+    
+    if (oldCustomerRes.rows.length > 0) {
+      const oldCustomer = oldCustomerRes.rows[0];
+      const newCustomer = existing.rows[0];
+
+      // Eskisini (masalan admin qo'shgan) saqlab qolamiz va unga haqiqiy telegramId ni beramiz
+      // Yangi ochilgan probelni o'chiramiz (chunki u faqat /start bosilganda ochilgan bo'sh profil)
+      await query("DELETE FROM customers WHERE id = $1", [newCustomer.id]);
+      await query("UPDATE customers SET \"telegramId\" = $1 WHERE id = $2", [telegramId, oldCustomer.id]);
+
+      // Agar yangi profilida ism bo'lsa va eskida bo'lmasa uni ham olib qo'yamiz
+      if (newCustomer.fullName && !oldCustomer.fullName) {
+        await query("UPDATE customers SET \"fullName\" = $1 WHERE id = $2", [newCustomer.fullName, oldCustomer.id]);
+      }
+
+      const mergedCustomer = await query("SELECT * FROM customers WHERE id = $1", [oldCustomer.id]);
+      return res.json(mergedCustomer.rows[0]);
+    }
+
+    await query("UPDATE customers SET phone = $1 WHERE id = $2", [phoneStr, existing.rows[0].id]);
     const updated = await query("SELECT * FROM customers WHERE id = $1", [existing.rows[0].id]);
     res.json(updated.rows[0]);
   } catch (e) {

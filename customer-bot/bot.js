@@ -179,16 +179,26 @@ function getSettingsMenu(ctx) {
 // ===================== REGISTRATION FLOW =====================
 bot.start(async (ctx) => {
   ctx.session.cart = [];
-  ctx.session.step = "choose_lang";
-  await ctx.reply(
-    "Tilni tanlang / Выберите язык:",
-    Markup.inlineKeyboard([
-      [
-        Markup.button.callback("🇺🇿 O'zbekcha", "lang_uz"),
-        Markup.button.callback("🇷🇺 Русский", "lang_ru")
-      ]
-    ])
-  );
+  const telegramId = String(ctx.from.id);
+
+  try {
+    const { data: customer } = await api.get(`/customers/${telegramId}`);
+    // Agar mijoz topilsa, to'g'ridan-to'g'ri menyuga o'tkazamiz
+    ctx.session.step = null;
+    return ctx.reply(t(ctx, "welcome"), getMenu(ctx));
+  } catch (e) {
+    // Agar 404 bo'lsa (topilmasa), ro'yxatdan o'tishni boshlaymiz
+    ctx.session.step = "choose_lang";
+    await ctx.reply(
+      "Tilni tanlang / Выберите язык:",
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback("🇺🇿 O'zbekcha", "lang_uz"),
+          Markup.button.callback("🇷🇺 Русский", "lang_ru")
+        ]
+      ])
+    );
+  }
 });
 
 bot.action(/lang_(uz|ru)/, async (ctx) => {
@@ -668,7 +678,7 @@ bot.hears(/^\/admin$/, async (ctx) => {
 bot.hears("👑 Admin menyusi", async (ctx) => {
   if (!ctx.session.isAdmin) return;
   await ctx.reply("Admin menyusiga xush kelibsiz!", Markup.keyboard([
-    ["➕ Mijoz qo'shish"],
+    ["🔍 Mijoz qidirish / Qo'shish"],
     ["🔙 Orqaga"]
   ]).resize());
 });
@@ -678,16 +688,16 @@ bot.hears("🔙 Orqaga", async (ctx) => {
 });
 
 // Qolda mijoz qo'shish jarayoni
-bot.hears("➕ Mijoz qo'shish", async (ctx) => {
+bot.hears("🔍 Mijoz qidirish / Qo'shish", async (ctx) => {
   if (!ctx.session.isAdmin) return;
-  ctx.session.step = "admin_add_customer_name";
-  await ctx.reply("Yangi mijozning to'liq ismini kiriting:\n(Bekor qilish uchun /cancel)");
+  ctx.session.step = "admin_add_customer_phone";
+  await ctx.reply("Mijozning telefon raqamini kiriting (masalan, +998901234567):\n(Bekor qilish uchun /cancel)");
 });
 
 bot.command("cancel", async (ctx) => {
   if (ctx.session.step?.startsWith("admin_add_customer")) {
     ctx.session.step = null;
-    await ctx.reply("Bekor qilindi.", Markup.keyboard([["➕ Mijoz qo'shish"], ["🔙 Orqaga"]]).resize());
+    await ctx.reply("Bekor qilindi.", Markup.keyboard([["🔍 Mijoz qidirish / Qo'shish"], ["🔙 Orqaga"]]).resize());
   }
 });
 
@@ -695,16 +705,33 @@ bot.on("message", async (ctx, next) => {
   if (!ctx.session.step?.startsWith("admin_add_customer")) return next();
   const text = ctx.message.text;
 
-  if (ctx.session.step === "admin_add_customer_name") {
-    ctx.session.adminTempName = text;
-    ctx.session.step = "admin_add_customer_phone";
-    return ctx.reply("Mijozning telefon raqamini kiriting (masalan, +998901234567):");
+  if (ctx.session.step === "admin_add_customer_phone") {
+    if (!text) return ctx.reply("Iltimos, telefon raqamni matn shaklida kiriting:");
+    
+    // Qidiruv
+    try {
+      const { data: existingCustomer } = await api.get(`/customers/phone/${encodeURIComponent(text)}`);
+      // Mijoz topildi!
+      ctx.session.step = null;
+      ctx.session.lastManualCustomerId = existingCustomer.telegramId;
+      await ctx.reply(`✅ Mijoz bazada topildi!\n\nIsmi: ${existingCustomer.fullName || "Noma'lum"}\nTel: ${existingCustomer.phone}\nManzil: ${existingCustomer.address || "Noma'lum"}\n\nUshbu mijozga hozir darhol buyurtma yaratasizmi?`,
+        Markup.inlineKeyboard([
+          [Markup.button.callback("🛒 Yangi buyurtma yaratish", `admin_order_${existingCustomer.telegramId}`)]
+        ])
+      );
+      return;
+    } catch (e) {
+      // Topilmadi, yangi mijoz qo'shishda davom etamiz
+      ctx.session.adminTempPhone = text;
+      ctx.session.step = "admin_add_customer_name";
+      return ctx.reply("Bu yangi raqam. Mijozning to'liq ismini kiriting:");
+    }
   }
 
-  if (ctx.session.step === "admin_add_customer_phone") {
-    ctx.session.adminTempPhone = text;
+  if (ctx.session.step === "admin_add_customer_name") {
+    ctx.session.adminTempName = text;
     ctx.session.step = "admin_add_customer_address";
-    return ctx.reply("Mijozning manzilini kiriting:");
+    return ctx.reply("Mijozning manzilini kiriting (matn yoki lokatsiya):");
   }
 
   if (ctx.session.step === "admin_add_customer_address") {
