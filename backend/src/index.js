@@ -12,6 +12,7 @@ const couriersRoutes = require("./routes/couriers");
 const ordersRoutes = require("./routes/orders");
 const warehouseRoutes = require("./routes/warehouse");
 const statsRoutes = require("./routes/stats");
+const reportsRoutes = require("./routes/reports");
 
 function initCronJobs() {
   // Serverni Render.com da 24/7 uyg'oq ushlab turish uchun har 10 daqiqada ping qilish
@@ -119,6 +120,7 @@ app.use("/api/couriers", couriersRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/warehouse", warehouseRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/reports", reportsRoutes);
 
 // Admin panel statik fayllarini shu server orqali xizmat qilish
 app.use(express.static(path.join(__dirname, "..", "..", "admin-panel")));

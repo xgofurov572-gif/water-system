@@ -108,7 +108,8 @@ router.post("/", async (req, res) => {
       `📦 <b>Buyurtma #${fullOrder.id}</b>\n` +
       `👤 Mijoz: ${fullOrder.customer?.fullName || customer.fullName || "Noma'lum"}\n` +
       `📞 Tel: ${fullOrder.customer?.phone || customer.phone || "—"}\n` +
-      `🏠 Manzil: ${fullOrder.address || "Karta orqali"}\n\n` +
+      `🏠 Manzil: ${fullOrder.address || "Karta orqali"}\n` +
+      `♻️ Qarz idishlar: <b>${fullOrder.customer?.bottlesOwed || 0} ta</b>\n\n` +
       `${fullOrder.items.map(i => `• ${i.productName} × ${i.quantity} ta`).join('\n')}\n\n` +
       `💰 Summa: <b>${fullOrder.totalPrice} so'm</b>\n` +
       `💳 To'lov turi: <b>${fullOrder.paymentType === 'karta' ? "Karta orqali" : "Naqd pul"}</b>`;
