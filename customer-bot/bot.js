@@ -642,26 +642,24 @@ bot.hears(["📦 Mening buyurtmalarim", "📦 Мои заказы"], async (ctx)
 });
 
 // ===================== ADMIN MENU =====================
-bot.hears(/^\/admin(?:\s+(.+)\s+(.+))?$/, async (ctx) => {
+bot.hears(/^\/admin(?:\s+login)?\s+([^\s]+)\s+([^\s]+)$/i, async (ctx) => {
   const username = ctx.match[1];
   const password = ctx.match[2];
   const telegramId = String(ctx.from.id);
 
-  if (username && password) {
-    try {
-      const res = await api.post("/auth/bot-login", { username, password, telegramId });
-      ctx.session.isAdmin = true;
-      return ctx.reply("✅ Tabriklaymiz, siz admin huquqiga ega bo'ldingiz!", getMenu(ctx));
-    } catch (e) {
-      return ctx.reply("❌ Login yoki parol xato.");
-    }
+  try {
+    const res = await api.post("/auth/bot-login", { username, password, telegramId });
+    ctx.session.isAdmin = true;
+    return ctx.reply("✅ Tabriklaymiz, siz admin huquqiga ega bo'ldingiz!", getMenu(ctx));
+  } catch (e) {
+    return ctx.reply("❌ Login yoki parol xato.");
   }
+});
 
-  // Agar login, parol kiritilmagan bo'lsa va allaqachon admin bo'lmasa
+bot.hears(/^\/admin$/, async (ctx) => {
   if (!ctx.session.isAdmin) {
-    return ctx.reply("Admin bo'lish uchun quyidagi ko'rinishda yozing:\n\n/admin login parol");
+    return ctx.reply("Admin bo'lish uchun quyidagi ko'rinishda yozing:\n\n/admin login parol\n(Masalan: /admin admin admin123)");
   }
-
   return ctx.reply("Siz allaqachon adminsiz. Menudan foydalaning.", getMenu(ctx));
 });
 
