@@ -30,6 +30,40 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// Admin bot orqali qo'lda mijoz qo'shish
+router.post("/manual", async (req, res) => {
+  try {
+    const { fullName, phone, address } = req.body;
+    if (!phone) return res.status(400).json({ error: "Telefon raqam majburiy" });
+
+    // Tekshiramiz, balki bu raqam allaqachon bazada bordir
+    let phoneStr = String(phone);
+    if (!phoneStr.startsWith("+")) {
+      phoneStr = "+" + phoneStr.replace(/\D/g, "");
+    }
+    const existing = await query("SELECT * FROM customers WHERE phone = $1", [phoneStr]);
+    if (existing.rows.length > 0) {
+      // Agar manzil yangi kiritilgan bo'lsa yangilaymiz
+      if (address) {
+        await query("UPDATE customers SET address = $1, \"fullName\" = $2 WHERE id = $3", [address, fullName || existing.rows[0].fullName, existing.rows[0].id]);
+      }
+      const updated = await query("SELECT * FROM customers WHERE id = $1", [existing.rows[0].id]);
+      return res.json(updated.rows[0]);
+    }
+
+    // Yangi mijoz yaratamiz
+    const fakeTelegramId = "manual_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const info = await query(
+      "INSERT INTO customers (\"telegramId\", \"fullName\", phone, address) VALUES ($1, $2, $3, $4) RETURNING *",
+      [fakeTelegramId, fullName || null, phoneStr, address || null]
+    );
+    res.json(info.rows[0]);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server xatosi" });
+  }
+});
+
 // Telegram bot: telefon raqam yuborilganda
 router.post("/:telegramId/phone", async (req, res) => {
   try {

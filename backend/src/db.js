@@ -26,6 +26,7 @@ async function initSchema() {
       "telegramId" TEXT UNIQUE NOT NULL,
       "fullName" TEXT,
       phone TEXT,
+      address TEXT,
       latitude REAL,
       longitude REAL,
       "bottlesOwed" INTEGER NOT NULL DEFAULT 0,
@@ -54,6 +55,12 @@ async function initSchema() {
       "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS bot_admins (
+      id SERIAL PRIMARY KEY,
+      "telegramId" TEXT UNIQUE NOT NULL,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS admin_users (
       id SERIAL PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
@@ -62,6 +69,10 @@ async function initSchema() {
       role TEXT NOT NULL DEFAULT 'operator',
       "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
     );
+
+    -- Mavjud jadvallarga yangi ustunlarni qo'shish (xavfsiz migratsiya)
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS address TEXT;
+
 
     CREATE TABLE IF NOT EXISTS orders (
       id SERIAL PRIMARY KEY,

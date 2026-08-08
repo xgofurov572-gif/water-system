@@ -158,10 +158,14 @@ function formatSum(n) {
 }
 
 function getMenu(ctx) {
-  return Markup.keyboard([
+  const buttons = [
     [t(ctx, "catalog")],
-    [t(ctx, "orders"), t(ctx, "settings")],
-  ]).resize();
+    [t(ctx, "orders"), t(ctx, "settings")]
+  ];
+  if (ctx.session?.isAdmin) {
+    buttons.push(["👑 Admin menyusi"]);
+  }
+  return Markup.keyboard(buttons).resize();
 }
 
 function getSettingsMenu(ctx) {
@@ -635,6 +639,142 @@ bot.hears(["📦 Mening buyurtmalarim", "📦 Мои заказы"], async (ctx)
   } catch (e) {
     await ctx.reply(t(ctx, "error"));
   }
+});
+
+// ===================== ADMIN MENU =====================
+bot.hears(/^\/admin(?:\s+(.+)\s+(.+))?$/, async (ctx) => {
+  const username = ctx.match[1];
+  const password = ctx.match[2];
+  const telegramId = String(ctx.from.id);
+
+  if (username && password) {
+    try {
+      const res = await api.post("/auth/bot-login", { username, password, telegramId });
+      ctx.session.isAdmin = true;
+      return ctx.reply("✅ Tabriklaymiz, siz admin huquqiga ega bo'ldingiz!", getMenu(ctx));
+    } catch (e) {
+      return ctx.reply("❌ Login yoki parol xato.");
+    }
+  }
+
+  // Agar login, parol kiritilmagan bo'lsa va allaqachon admin bo'lmasa
+  if (!ctx.session.isAdmin) {
+    return ctx.reply("Admin bo'lish uchun quyidagi ko'rinishda yozing:\n\n/admin login parol");
+  }
+
+  return ctx.reply("Siz allaqachon adminsiz. Menudan foydalaning.", getMenu(ctx));
+});
+
+bot.hears("👑 Admin menyusi", async (ctx) => {
+  if (!ctx.session.isAdmin) return;
+  await ctx.reply("Admin menyusiga xush kelibsiz!", Markup.keyboard([
+    ["➕ Mijoz qo'shish"],
+    ["🔙 Orqaga"]
+  ]).resize());
+});
+
+bot.hears("🔙 Orqaga", async (ctx) => {
+  await ctx.reply("Asosiy menyu", getMenu(ctx));
+});
+
+// Qolda mijoz qo'shish jarayoni
+bot.hears("➕ Mijoz qo'shish", async (ctx) => {
+  if (!ctx.session.isAdmin) return;
+  ctx.session.step = "admin_add_customer_name";
+  await ctx.reply("Yangi mijozning to'liq ismini kiriting:\n(Bekor qilish uchun /cancel)");
+});
+
+bot.command("cancel", async (ctx) => {
+  if (ctx.session.step?.startsWith("admin_add_customer")) {
+    ctx.session.step = null;
+    await ctx.reply("Bekor qilindi.", Markup.keyboard([["➕ Mijoz qo'shish"], ["🔙 Orqaga"]]).resize());
+  }
+});
+
+bot.on("text", async (ctx, next) => {
+  if (!ctx.session.step?.startsWith("admin_add_customer")) return next();
+  const text = ctx.message.text;
+
+  if (ctx.session.step === "admin_add_customer_name") {
+    ctx.session.adminTempName = text;
+    ctx.session.step = "admin_add_customer_phone";
+    return ctx.reply("Mijozning telefon raqamini kiriting (masalan, +998901234567):");
+  }
+
+  if (ctx.session.step === "admin_add_customer_phone") {
+    ctx.session.adminTempPhone = text;
+    ctx.session.step = "admin_add_customer_address";
+    return ctx.reply("Mijozning manzilini kiriting:");
+  }
+
+  if (ctx.session.step === "admin_add_customer_address") {
+    const address = text;
+    const name = ctx.session.adminTempName;
+    const phone = ctx.session.adminTempPhone;
+    ctx.session.step = null;
+
+    try {
+      const { data: customer } = await api.post("/customers/manual", {
+        fullName: name,
+        phone: phone,
+        address: address
+      });
+      // Yangi buyurtma yaratish opsiyasini ko'rsatamiz
+      ctx.session.lastManualCustomerId = customer.telegramId; 
+      
+      await ctx.reply(`✅ Mijoz muvaffaqiyatli qo'shildi!\n\nIsmi: ${customer.fullName}\nTel: ${customer.phone}\nManzil: ${customer.address}\n\nUshbu mijozga hozir darhol buyurtma yaratasizmi?`,
+        Markup.inlineKeyboard([
+          [Markup.button.callback("🛒 Yangi buyurtma yaratish", `admin_order_${customer.telegramId}`)]
+        ])
+      );
+    } catch (e) {
+      console.error(e);
+      await ctx.reply("❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
+    }
+    return;
+  }
+});
+
+bot.action(/^admin_order_(.+)$/, async (ctx) => {
+  if (!ctx.session.isAdmin) return;
+  const targetId = ctx.match[1];
+  
+  // Asosiy buyurtma oynasiga o'tkazib yuboramiz
+  // Buning uchun ctx.session ma'lumotlarini ushbu foydalanuvchiga emas, mijozning telegramId siga asosan shakllantiramiz
+  // Lekin bizda /orders endpointi telegramId ni body dan oladi.
+  // Shuning uchun, admin buyurtma miqdorini shu yerda to'g'ridan-to'g'ri kiritishi osonroq.
+  ctx.session.step = "admin_order_quantity";
+  ctx.session.adminTargetCustomer = targetId;
+  
+  await ctx.answerCbQuery();
+  await ctx.reply("Nechta suv buyurtma qilinadi? (raqam kiriting)");
+});
+
+bot.on("text", async (ctx, next) => {
+  if (ctx.session.step === "admin_order_quantity") {
+    const qty = parseInt(ctx.message.text);
+    if (isNaN(qty) || qty < 1) return ctx.reply("Iltimos, to'g'ri raqam kiriting:");
+    
+    ctx.session.step = null;
+    const targetId = ctx.session.adminTargetCustomer;
+    
+    try {
+      // Baza orqali target mijozni topamiz, bizda uning 'telegramId' (fake yoki real) si bor
+      // API call qilib buyurtma yaratamiz
+      const { data: order } = await api.post("/orders", {
+        telegramId: targetId,
+        items: [{ productId: 1, quantity: qty }], // Odatiy 18.9L suv (ID 1 deb faraz qilamiz)
+        address: "Mijoz manzili bo'yicha",
+        paymentType: "naqd"
+      });
+      await ctx.reply(`✅ Buyurtma #${order.id} muvaffaqiyatli yaratildi va kuryerlarga yuborildi!`);
+    } catch (e) {
+      console.error(e.response?.data || e.message);
+      await ctx.reply("❌ Buyurtma yaratishda xatolik.");
+    }
+    return;
+  }
+  return next();
 });
 
 bot.catch((err, ctx) => {
