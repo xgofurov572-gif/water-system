@@ -28,6 +28,15 @@ const i18n = {
     oferta_text: "<b>OS-MAR WATER — Ommaviy Oferta Shartnomasi</b>\n\n<b>1. Umumiy qoidalar</b>\nTelegram-bot orqali buyurtma berish — ushbu Oferta shartlarini to'liq qabul qilganlik hisoblanadi.\n\n<b>2. Xizmatning mohiyati</b>\nKompaniya mijozlarga 18.9 litrli idishlarda ichimlik suvi yetkazib berish xizmatini amalga oshiradi.\n- Minimal buyurtma miqdori — 5 ta idish.\n\n<b>3. Narxlar va to'lov</b>\nTo'lov ikki usulda amalga oshiriladi: Naqd pul yoki Karta orqali. Buyurtma yetkazilgandan so'ng to'lov qilinadi.\n\n<b>4. Idishlar va qaytarish</b>\n18.9 litrli plastik idishlar kompaniya mulki hisoblanadi. Keyingi yetkazib berishda mijoz bo'sh idishlarni kuryerga topshirishi shart. Agar idish yo'qotilsa yoki yaroqsiz holatga keltirilsa, har bir idish uchun 50,000 so'm miqdorida jarima (qoplab berish to'lovi) belgilanadi.\n\n<b>5. Yetkazib berish</b>\nYetkazib berish faqat bot orqali ko'rsatilgan manzilga amalga oshiriladi.\n\n<b>6. Shaxsiy ma'lumotlar</b>\nMijoz tomonidan berilgan ism, telefon raqami va joylashuv faqat buyurtmani yetkazib berish uchun ishlatiladi.",
     agree: "✅ Roziman",
     ask_name: "Iltimos, ism va familiyangizni kiriting:",
+    ask_company_name: "🏢 Tashkilot (korxona) nomini kiriting:",
+    ask_inn: "📄 STIR (INN) raqamini kiriting:",
+    ask_director_name: "👤 Mas'ul shaxs (direktor yoki xodim) ism-familiyasini kiriting:",
+    oferta_yuridik: "Hurmatli mijoz!\n\nBotdan foydalanishdan oldin <b>Yuridik shaxslar uchun ommaviy oferta</b> bilan tanishib chiqing. Ofertani o'qish uchun pastdagi tugmani bosing.\n\nO'qib chiqqaningizdan so'ng «✅ Roziman» tugmasini bosing.",
+    oferta_yuridik_text: "<b>OS-MAR WATER — Yuridik shaxslar uchun Oferta</b>\n\n<b>1. Umumiy qoidalar</b>\nYuridik shaxslarga suv yetkazib berish shartlari ushbu ofertada belgilangan...\n(Qisqartirilgan matn)",
+    choose_type: "Siz o'zingiz (uyingiz) uchun suv olasizmi yoki tashkilot (korxona) uchunmi?",
+    type_fizik: "🏠 O'zim uchun",
+    type_yuridik: "🏢 Tashkilot uchun",
+    pay_transfer: "🏦 Pul o'tkazish",
     catalog: "🛒 Katalog",
     orders: "📦 Mening buyurtmalarim",
     settings: "⚙️ Sozlamalar",
@@ -90,6 +99,15 @@ const i18n = {
     oferta_text: "<b>OS-MAR WATER — Публичная Оферта</b>\n\n<b>1. Общие положения</b>\nОформление заказа через Telegram-бот означает полное принятие условий данной Оферты.\n\n<b>2. Суть услуги</b>\nДоставка питьевой воды в бутылях 18.9 л. Минимальный заказ — 5 бутылей.\n\n<b>3. Цены и оплата</b>\nОплата: Наличными или Картой. Оплата производится после доставки.\n\n<b>4. Бутыли и возврат</b>\nБутыли 18.9 л являются собственностью компании. При следующей доставке клиент обязан вернуть пустую тару. При утере или порче тары взимается штраф в размере 50,000 сум за каждую бутыль.\n\n<b>5. Доставка</b>\nОсуществляется только по адресу, указанному в боте.\n\n<b>6. Личные данные</b>\nИмя, телефон и локация используются исключительно для доставки заказа.",
     agree: "✅ Согласен",
     ask_name: "Пожалуйста, введите ваше имя и фамилию:",
+    ask_company_name: "🏢 Введите название организации (компании):",
+    ask_inn: "📄 Введите номер ИНН:",
+    ask_director_name: "👤 Введите имя и фамилию ответственного лица (или директора):",
+    oferta_yuridik: "Уважаемый клиент!\n\nПеред использованием ознакомьтесь с <b>Публичной офертой для юридических лиц</b>. Для ознакомления нажмите кнопку ниже.\n\nПосле ознакомления нажмите «✅ Согласен».",
+    oferta_yuridik_text: "<b>OS-MAR WATER — Оферта для юридических лиц</b>\n\n<b>1. Общие положения</b>\nУсловия доставки воды юридическим лицам...\n(Сокращенный текст)",
+    choose_type: "Вы покупаете воду для себя (домой) или для организации?",
+    type_fizik: "🏠 Для себя",
+    type_yuridik: "🏢 Для организации",
+    pay_transfer: "🏦 Перечисление",
     catalog: "🛒 Каталог",
     orders: "📦 Мои заказы",
     settings: "⚙️ Настройки",
@@ -185,6 +203,7 @@ bot.start(async (ctx) => {
     const { data: customer } = await api.get(`/customers/${telegramId}`);
     // Agar mijoz topilsa, to'g'ridan-to'g'ri menyuga o'tkazamiz
     ctx.session.step = null;
+    ctx.session.customerType = customer.customerType;
     return ctx.reply(t(ctx, "welcome"), getMenu(ctx));
   } catch (e) {
     // Agar 404 bo'lsa (topilmasa), ro'yxatdan o'tishni boshlaymiz
@@ -208,13 +227,11 @@ bot.action(/lang_(uz|ru)/, async (ctx) => {
   await ctx.deleteMessage().catch(() => {});
   
   if (ctx.session.step === "choose_lang") {
-    // Endi oferta ko'rsatamiz
-    ctx.session.step = "oferta";
-    await ctx.reply(t(ctx, "oferta"), {
-      parse_mode: "HTML",
+    ctx.session.step = "choose_type";
+    await ctx.reply(t(ctx, "choose_type"), {
       ...Markup.inlineKeyboard([
-        [Markup.button.callback(t(ctx, "oferta_btn"), "read_oferta")],
-        [Markup.button.callback(t(ctx, "agree"), "agree_oferta")]
+        [Markup.button.callback(t(ctx, "type_fizik"), "type_fizik")],
+        [Markup.button.callback(t(ctx, "type_yuridik"), "type_yuridik")]
       ])
     });
   } else {
@@ -224,9 +241,27 @@ bot.action(/lang_(uz|ru)/, async (ctx) => {
   }
 });
 
+bot.action(/type_(fizik|yuridik)/, async (ctx) => {
+  const cType = ctx.match[1];
+  ctx.session.customerType = cType;
+  await ctx.answerCbQuery();
+  await ctx.deleteMessage().catch(() => {});
+  
+  ctx.session.step = "oferta";
+  const ofertaKey = cType === "yuridik" ? "oferta_yuridik" : "oferta";
+  await ctx.reply(t(ctx, ofertaKey), {
+    parse_mode: "HTML",
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback(t(ctx, "oferta_btn"), "read_oferta")],
+      [Markup.button.callback(t(ctx, "agree"), "agree_oferta")]
+    ])
+  });
+});
+
 bot.action("read_oferta", async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText(t(ctx, "oferta_text"), {
+  const textKey = ctx.session.customerType === "yuridik" ? "oferta_yuridik_text" : "oferta_text";
+  await ctx.editMessageText(t(ctx, textKey), {
     parse_mode: "HTML",
     ...Markup.inlineKeyboard([
       [Markup.button.callback(t(ctx, "agree"), "agree_oferta")]
@@ -237,8 +272,13 @@ bot.action("read_oferta", async (ctx) => {
 bot.action("agree_oferta", async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.deleteMessage().catch(() => {});
-  ctx.session.step = "ask_name";
-  await ctx.reply(t(ctx, "ask_name"));
+  if (ctx.session.customerType === "yuridik") {
+    ctx.session.step = "ask_company_name";
+    await ctx.reply(t(ctx, "ask_company_name"));
+  } else {
+    ctx.session.step = "ask_name";
+    await ctx.reply(t(ctx, "ask_name"));
+  }
 });
 
 // Text xabarlarni tutish
@@ -246,6 +286,20 @@ bot.on("text", async (ctx, next) => {
   const text = ctx.message.text;
   const telegramId = String(ctx.from.id);
   
+  // Registration: Ask Company Name
+  if (ctx.session.step === "ask_company_name") {
+    ctx.session.companyName = text;
+    ctx.session.step = "ask_inn";
+    return ctx.reply(t(ctx, "ask_inn"));
+  }
+
+  // Registration: Ask INN
+  if (ctx.session.step === "ask_inn") {
+    ctx.session.inn = text;
+    ctx.session.step = "ask_name";
+    return ctx.reply(t(ctx, "ask_director_name"));
+  }
+
   // Registration: Ask Name
   if (ctx.session.step === "ask_name") {
     ctx.session.tempName = text;
@@ -581,32 +635,47 @@ bot.action("clear_cart", async (ctx) => {
 
 // ===================== CHECKOUT =====================
 bot.action("checkout", async (ctx) => {
+  if (!ctx.session.cart || ctx.session.cart.length === 0) return ctx.answerCbQuery();
   await ctx.answerCbQuery();
   await ctx.deleteMessage().catch(() => {});
-  const cart = ctx.session.cart || [];
-  if (!cart.length) return ctx.reply(t(ctx, "cart_empty"));
 
   const telegramId = String(ctx.from.id);
   try {
     const { data: customer } = await api.get(`/customers/${telegramId}`);
+    ctx.session.customerType = customer.customerType;
     
-    // We already have phone from registration. 
-    // Just verify location
-    if (customer.latitude == null || customer.longitude == null) {
-      ctx.session.step = "checkout_loc";
-      return ctx.reply(t(ctx, "send_loc"), Markup.keyboard([
-        [Markup.button.locationRequest(t(ctx, "send_loc"))],
-        [t(ctx, "back")]
-      ]).resize());
+    const buttons = [
+      [Markup.button.callback(t(ctx, "pay_cash"), "pay_naqd")],
+      [Markup.button.callback(t(ctx, "pay_card"), "pay_karta")]
+    ];
+
+    if (ctx.session.customerType === "yuridik") {
+      buttons.push([Markup.button.callback(t(ctx, "pay_transfer"), "pay_perekisleniye")]);
     }
 
-    // Telefon va lokatsiya bor, manzili aniqlashtirishni so'raymiz
-    await askAddressForCheckout(ctx, customer);
-
+    await ctx.reply(t(ctx, "choose_payment"), Markup.inlineKeyboard(buttons));
   } catch (e) {
-    // If not found (maybe they didn't finish reg) -> force /start
     await ctx.reply("Siz bazada topilmadingiz. Iltimos /start buyrug'ini bosing.");
   }
+});
+
+bot.action(/pay_(.+)/, async (ctx) => {
+  ctx.session.paymentType = ctx.match[1];
+  await ctx.answerCbQuery();
+  await ctx.deleteMessage().catch(() => {});
+  
+  const telegramId = String(ctx.from.id);
+  const { data: customer } = await api.get(`/customers/${telegramId}`);
+    
+  if (customer.latitude == null || customer.longitude == null) {
+    ctx.session.step = "checkout_loc";
+    return ctx.reply(t(ctx, "send_loc"), Markup.keyboard([
+      [Markup.button.locationRequest(t(ctx, "send_loc"))],
+      [t(ctx, "back")]
+    ]).resize());
+  }
+
+  await askAddressForCheckout(ctx, customer);
 });
 
 async function askAddressForCheckout(ctx, customer) {
@@ -736,12 +805,9 @@ bot.on("message", async (ctx, next) => {
 
   if (ctx.session.step === "admin_add_customer_address") {
     let address = "";
-    let lat = null;
-    let lng = null;
-
     if (ctx.message.location) {
-      lat = ctx.message.location.latitude;
-      lng = ctx.message.location.longitude;
+      ctx.session.lat = ctx.message.location.latitude;
+      ctx.session.lng = ctx.message.location.longitude;
       address = "Lokatsiya bo'yicha";
     } else if (ctx.message.text) {
       address = ctx.message.text;
@@ -758,8 +824,12 @@ bot.on("message", async (ctx, next) => {
         fullName: name,
         phone: phone,
         address: address,
-        latitude: lat,
-        longitude: lng
+        latitude: ctx.session.lat,
+        longitude: ctx.session.lng,
+        language: ctx.session.lang,
+        customerType: ctx.session.customerType,
+        companyName: ctx.session.companyName,
+        inn: ctx.session.inn
       });
       // Yangi buyurtma yaratish opsiyasini ko'rsatamiz
       ctx.session.lastManualCustomerId = customer.telegramId; 

@@ -397,7 +397,10 @@ async function loadCustomers() {
       const tr = document.createElement('tr');
       tr.className = 'border-t';
       tr.innerHTML = `
-        <td class="px-4 py-2">${c.fullName || 'Noma\'lum'}</td>
+        <td class="px-4 py-2">
+          <div class="font-medium">${c.fullName || 'Noma\'lum'}</div>
+          ${c.customerType === 'yuridik' ? `<div class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded inline-block mt-1">🏢 ${c.companyName || 'Korxona'} (STIR: ${c.inn || '—'})</div>` : ''}
+        </td>
         <td class="px-4 py-2">${c.phone || '—'}</td>
         <td class="px-4 py-2 ${c.bottlesOwed > 0 ? 'text-amber-600 font-semibold' : 'text-slate-500'}">
           ${c.bottlesOwed} ta ${c.bottlesOwed > 0 ? '⚠️' : ''}
