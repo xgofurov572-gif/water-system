@@ -7,36 +7,23 @@ const router = express.Router();
 // Telegram bot: mijoz birinchi marta /start bosganda chaqiradi
 router.post("/register", async (req, res) => {
   try {
-    const { telegramId, fullName, phone, address, latitude, longitude, language, customerType, companyName, inn } = req.body;
+    const { telegramId, fullName } = req.body;
     if (!telegramId) return res.status(400).json({ error: "telegramId majburiy" });
 
-    // Agar mavjud bo'lsa yangilash
-    const existing = await query("SELECT id FROM customers WHERE \"telegramId\" = $1", [String(telegramId)]);
+    const existing = await query("SELECT * FROM customers WHERE \"telegramId\" = $1", [String(telegramId)]);
     if (existing.rows.length > 0) {
-      const q = `
-        UPDATE customers SET
-          "fullName" = COALESCE($1, "fullName"),
-          phone = COALESCE($2, phone),
-          address = COALESCE($3, address),
-          latitude = COALESCE($4, latitude),
-          longitude = COALESCE($5, longitude),
-          language = COALESCE($6, language),
-          "customerType" = COALESCE($7, "customerType"),
-          "companyName" = COALESCE($8, "companyName"),
-          inn = COALESCE($9, inn)
-        WHERE "telegramId" = $10 RETURNING *
-      `;
-      const updated = await query(q, [fullName, phone, address, latitude, longitude, language, customerType, companyName, inn, String(telegramId)]);
+      if (fullName) {
+        await query("UPDATE customers SET \"fullName\" = $1 WHERE id = $2", [fullName, existing.rows[0].id]);
+      }
+      const updated = await query("SELECT * FROM customers WHERE id = $1", [existing.rows[0].id]);
       return res.json(updated.rows[0]);
     }
 
-    // Yangi yaratish
-    const q = `
-      INSERT INTO customers ("telegramId", "fullName", phone, address, latitude, longitude, language, "customerType", "companyName", inn)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
-    `;
-    const inserted = await query(q, [String(telegramId), fullName, phone, address, latitude, longitude, language, customerType || 'fizik', companyName, inn]);
-    res.json(inserted.rows[0]);
+    const info = await query(
+      "INSERT INTO customers (\"telegramId\", \"fullName\") VALUES ($1, $2) RETURNING *",
+      [String(telegramId), fullName || null]
+    );
+    res.json(info.rows[0]);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Server xatosi" });

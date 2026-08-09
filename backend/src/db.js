@@ -31,14 +31,8 @@ async function initSchema() {
       longitude REAL,
       "bottlesOwed" INTEGER NOT NULL DEFAULT 0,
       language TEXT DEFAULT 'uz',
-      "customerType" TEXT DEFAULT 'fizik',
-      "companyName" TEXT,
-      inn TEXT,
       "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
     );
-    ALTER TABLE customers ADD COLUMN IF NOT EXISTS "customerType" TEXT DEFAULT 'fizik';
-    ALTER TABLE customers ADD COLUMN IF NOT EXISTS "companyName" TEXT;
-    ALTER TABLE customers ADD COLUMN IF NOT EXISTS inn TEXT;
 
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
